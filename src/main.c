@@ -24,7 +24,7 @@ void startUp(){
   indicator_init();
   display_init();
   fan_init();
-  // lamp_init();
+  lamp_init();
   vent_init();
 
 
@@ -42,6 +42,8 @@ void actuators(void *parameters){
   vent_set_angle(90);    // center
   vTaskDelay(1000 / portTICK_PERIOD_MS);
   vent_set_angle(180);   // max position
+  vTaskDelay(1000 / portTICK_PERIOD_MS);
+
 
 
 

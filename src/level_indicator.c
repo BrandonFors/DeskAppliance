@@ -33,8 +33,8 @@ void indicator_init(){
     .queue_size = 1,
   };
 
-  spi_bus_initialize(SPI2_HOST, &spi_config, SPI_DMA_CH_AUTO);
-  spi_bus_add_device(SPI2_HOST, &spi_device_config, &spi_handle);
+  ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &spi_config, SPI_DMA_CH_AUTO));
+  ESP_ERROR_CHECK(spi_bus_add_device(SPI2_HOST, &spi_device_config, &spi_handle));
 
   t = (spi_transaction_t){
     .length = 8,

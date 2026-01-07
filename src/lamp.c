@@ -9,8 +9,11 @@
 
 static ledc_timer_config_t timer_config;
 static ledc_channel_config_t channel_config;
+static const char *TAG = "Lamp";
 
 static uint8_t current_percent;
+
+#define TIMER_FREQ 1000 
 
 void lamp_init(){
   // create a configuration for the timer of the ledc
@@ -18,11 +21,12 @@ void lamp_init(){
     .speed_mode = LEDC_LOW_SPEED_MODE,
     .duty_resolution = LEDC_TIMER_8_BIT,
     .timer_num = LEDC_TIMER_0,
-    .freq_hz = 1000,
+    .freq_hz = TIMER_FREQ,
     .clk_cfg = LEDC_AUTO_CLK,
   };
   
-  ledc_timer_config(&timer_config);
+  ESP_LOGI(TAG, "Configuring LEDC Timer")
+  ESP_ERROR_CHECK(ledc_timer_config(&timer_config));
 
   //create a configuration for the channel of the ledc
   channel_config = (ledc_channel_config_t){
@@ -34,11 +38,12 @@ void lamp_init(){
     .hpoint = 0,
 
   };
-
-  ledc_channel_config(&channel_config);
+  
+  ESP_LOGI(TAG, "Configuring LEDC Channel")
+  ESP_ERROR_CHECK(ledc_channel_config(&channel_config));
 
   //installs fade functionality so that ledc can transition between duty cycle values
-  ledc_fade_func_install(0); // esp32 threw an error when i didnt include this
+  ESP_ERROR_CHECK(ledc_fade_func_install(0)); // esp32 threw an error when i didnt include this
 
   current_percent = 0;
 
@@ -47,6 +52,8 @@ void lamp_init(){
 void lamp_set_brightness(uint8_t percent){
   current_percent = percent;
   uint8_t new_duty = MIN_LAMP_DUTY + (MAX_LAMP_DUTY - MIN_LAMP_DUTY)*(percent/100.0);
+  
+  ESP_LOGI(TAG, "Lamp set to %" PRIu32 " duty.", new_duty);
   ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, new_duty, 0));
 }
 

@@ -1,3 +1,6 @@
+#ifndef BOARD_H
+#define BOARD_H
+
 #include <stdint.h>
 
 static const uint8_t LED_BUILTIN = 3;
@@ -32,3 +35,5 @@ static const uint8_t A1 = 1;
 static const uint8_t A2 = 2;
 static const uint8_t A3 = 3;
 static const uint8_t A4 = 4;
+
+#endif
