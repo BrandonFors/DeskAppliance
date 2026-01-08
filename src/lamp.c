@@ -1,6 +1,10 @@
 #include "board.h"
 #include "lamp.h"
 #include "driver/ledc.h"
+#include "esp_err.h"
+#include "esp_log.h"
+#include <inttypes.h>
+
 
 
 //these values represent the min and max duty cycle when the lamp is in a usable state
@@ -25,7 +29,7 @@ void lamp_init(){
     .clk_cfg = LEDC_AUTO_CLK,
   };
   
-  ESP_LOGI(TAG, "Configuring LEDC Timer")
+  ESP_LOGI(TAG, "Configuring LEDC Timer");
   ESP_ERROR_CHECK(ledc_timer_config(&timer_config));
 
   //create a configuration for the channel of the ledc
@@ -39,7 +43,7 @@ void lamp_init(){
 
   };
   
-  ESP_LOGI(TAG, "Configuring LEDC Channel")
+  ESP_LOGI(TAG, "Configuring LEDC Channel");
   ESP_ERROR_CHECK(ledc_channel_config(&channel_config));
 
   //installs fade functionality so that ledc can transition between duty cycle values
@@ -51,7 +55,7 @@ void lamp_init(){
 
 void lamp_set_brightness(uint8_t percent){
   current_percent = percent;
-  uint8_t new_duty = MIN_LAMP_DUTY + (MAX_LAMP_DUTY - MIN_LAMP_DUTY)*(percent/100.0);
+  uint32_t new_duty = MIN_LAMP_DUTY + (MAX_LAMP_DUTY - MIN_LAMP_DUTY)*(percent/100.0);
   
   ESP_LOGI(TAG, "Lamp set to %" PRIu32 " duty.", new_duty);
   ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, new_duty, 0));

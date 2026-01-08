@@ -1,11 +1,17 @@
-#include <stdio.h>
 #include "board.h"
 #include "rtos_setup.h"
+#include "esp_err.h"
+#include "esp_log.h"
+
+//outputs
 #include "level_indicator.h"
 #include "user_interface.h"
 #include "fan_motor.h"
 #include "lamp.h"
 #include "vent.h"
+
+//inputs
+#include "potentiometer.h"
 
 
 #include "freertos/FreeRTOS.h"
@@ -15,8 +21,9 @@
 
 static const BaseType_t app_cpu = 0;
 
+static char* TAG = "RTOS";
 
-void startUp(){
+void start_up(){
   //set led pin to output mode
   gpio_set_direction(LED_BUILTIN, GPIO_MODE_OUTPUT);
 
@@ -26,6 +33,7 @@ void startUp(){
   fan_init();
   lamp_init();
   vent_init();
+  potentiometer_init();
 
 
 }
@@ -45,12 +53,19 @@ void actuators(void *parameters){
   vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 
-
-
-
-
   }
 
+}
+
+void read_potentiometer(void *parameters){
+  while(1){
+    int pct = read_pot_pct();
+    ESP_LOGI(TAG, "Recieved pot reading of %d%%", pct);
+    //send to actuator task 
+    //actuator task will apply this value whereever it is relevant according to UI
+    vTaskDelay(100/portTICK_PERIOD_MS);
+  }
+  
 }
 
 void user_interface(void *parameters){
@@ -73,9 +88,10 @@ void blink_led(void *parameters) {
 }
 
 void app_main() {
-  startUp();
+  start_up();
   
-
+  ESP_LOGI(TAG, "Creating Tasks.");
+  
   xTaskCreatePinnedToCore(
     blink_led,
     "Blink LED",
@@ -99,6 +115,16 @@ void app_main() {
   xTaskCreatePinnedToCore(
     user_interface,
     "User Interface",
+    2048,
+    NULL,
+    1,
+    NULL,
+    app_cpu
+  );
+
+  xTaskCreatePinnedToCore(
+    read_potentiometer,
+    "Pot Test",
     2048,
     NULL,
     1,

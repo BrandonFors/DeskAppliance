@@ -2,8 +2,8 @@
 #include "user_interface.h"
 #include "driver/gpio.h"
 #include "driver/i2c_master.h"
+#include "esp_err.h"
 #include "esp_log.h"
-#include <stdio.h>
 #include <string.h>
 
 
@@ -22,10 +22,6 @@ static u8g2_esp32_hal_t u8g2_esp32_hal;
 static u8g2_t u8g2; // contains all data for the display
 
 void display_init(){
-  //setup 
-
-
-
 
   //initialize HAL for 2 wire i2c use
   u8g2_esp32_hal = (u8g2_esp32_hal_t)U8G2_ESP32_HAL_DEFAULT;

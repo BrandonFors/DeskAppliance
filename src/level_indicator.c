@@ -1,6 +1,8 @@
 #include "level_indicator.h"
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
+#include "esp_err.h"
+#include "esp_log.h"
 #include "board.h"
 
 
@@ -10,6 +12,8 @@ static spi_bus_config_t spi_config;
 static spi_transaction_t t;
 static spi_device_interface_config_t spi_device_config;
 static spi_transaction_t t;
+
+static const char *TAG = "Level Indicator";
 
 static uint8_t sendbuf;
 
@@ -26,14 +30,18 @@ void indicator_init(){
     .sclk_io_num = SCLK,
   };
 
+  ESP_LOGI(TAG, "Initializing SPI Bus");
+  ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &spi_config, SPI_DMA_CH_AUTO));
+
+
   spi_device_config = (spi_device_interface_config_t){
     .clock_speed_hz = 1000000,
     .mode = 0,
     .spics_io_num = -1, // handling CS manually (just connected to 5V on board)
     .queue_size = 1,
   };
-
-  ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &spi_config, SPI_DMA_CH_AUTO));
+  
+  ESP_LOGI(TAG, "Adding SPI Device");
   ESP_ERROR_CHECK(spi_bus_add_device(SPI2_HOST, &spi_device_config, &spi_handle));
 
   t = (spi_transaction_t){

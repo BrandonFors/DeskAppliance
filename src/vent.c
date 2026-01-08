@@ -1,6 +1,7 @@
 #include "board.h"
 #include "vent.h"
 #include "driver/ledc.h"
+#include "esp_err.h"
 #include "esp_log.h"
 #include <inttypes.h>
 
@@ -37,11 +38,11 @@ void vent_init(){
     .hpoint = 0,
 
   };
-  
+
   ESP_LOGI(TAG, "Configuring LEDC Channel");
   ESP_ERROR_CHECK(ledc_channel_config(&channel_config));
-
-  ESP_ERROR_CHECK(ledc_fade_func_install(0));
+  //fade func should only be called once and is also installed by lamp.c
+  // ESP_ERROR_CHECK(ledc_fade_func_install(0));
 
 }
 
