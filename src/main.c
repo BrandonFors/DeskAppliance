@@ -117,24 +117,41 @@ void user_interface(void *parameters){
     {"Lamp", false},
     {"Exit", false},
   };
+
+  Actuator_Id actuator_id_arr[ACTUATOR_MENU_LEN] = {
+    FAN,
+    VENT,
+    LAMP,
+    ACTUATOR_NA,
+  };
   
   MenuItem action_menu[ACTION_MENU_LEN] = {
-    {.name = "Fan", .selected = false}, 
-    {.name = "Vent", .selected = false},
-    {.name = "Lamp", .selected = false},
-    {.name = "Exit", .selected = false},
+    {"Mode",false}, 
+    {"Toggle", false},
+    {"Adjust", false},
+    {"Exit", false},
+  };
+
+  Action_Id action_id_arr[ACTION_MENU_LEN] = {
+    MODE,
+    TOGGLE,
+    ADJUST,
+    ACTION_NA,
   };
   
 
   //variables needed for UI logic
-  bool home = true;
   int selected_idx = 0;
+  Actuator_Id chosen_actuator = ACTUATOR_NA;
+  Action_Id chosen_action = ACTION_NA;
   
   //variable to store what button was pressed
-  ButtonEvent pressed;
-  homeScreen();
- 
+  ButtonEvent pressed = NA;
+  
   while(1){
+    homeScreen();
+
+    // MENU 1: ACTUATORS ///////////////////////
     if(xQueueReceive(buttonQueue, &pressed, portMAX_DELAY) == pdTRUE){
       selected_idx = 0;
       actuator_menu[selected_idx].selected = true;
@@ -148,15 +165,69 @@ void user_interface(void *parameters){
           selected_idx = (selected_idx+1) % ACTUATOR_MENU_LEN;
           actuator_menu[selected_idx].selected = true;
           displayMenu(actuator_menu, ACTUATOR_MENU_LEN);
-        }else if(pressed == BUTTON_1){
-
         }
       }
+    }
+    //reset the current menu and shared resources for the next menu
+    chosen_actuator = actuator_id_arr[selected_idx];
+    actuator_menu[selected_idx].selected = false;
+
+    //If exit was chosen, restart
+    if (chosen_actuator == ACTUATOR_NA) continue;
+  
+    // MENU 2: ACTIONS ///////////////////////
+    selected_idx = 0;
+    action_menu[selected_idx].selected = true;
+    displayMenu(action_menu, ACTION_MENU_LEN);
+
+    pressed = NA;
+    // loop will run if an actuator was chosen from the previos menu ie exit was not chosen
+    while(pressed != BUTTON_1){ 
+      if(xQueueReceive(buttonQueue, &pressed, portMAX_DELAY) == pdTRUE){
+        if(pressed == BUTTON_2){ // this is the down or move button
+          action_menu[selected_idx].selected = false;
+          selected_idx = (selected_idx+1) % ACTION_MENU_LEN;
+          action_menu[selected_idx].selected = true;
+          displayMenu(action_menu, ACTION_MENU_LEN);
+        }
+      }
+    }
+    chosen_action = action_id_arr[selected_idx];
+    action_menu[selected_idx].selected = false;
+    
+    // If Exit was chosen, restart
+    if(chosen_action == ACTION_NA) continue;
+    
+
+    // //INTERFACE WITH CONTROLLER BASED ON DATA
+    pressed = NA;
+    switch(chosen_action){
+      case (MODE):
+
+      case(TOGGLE):
+        break;
+      case (ADJUST):
+        displayAdjust(actuator_menu[chosen_action]);
+        //send data to controller and the controller will start sampling
+        while(pressed != BUTTON_1 && pressed != BUTTON_2){ 
+          if(xQueueReceive(buttonQueue, &pressed, portMAX_DELAY) == pdTRUE){
+            //send data to the controller again and it will stop sampling
+          }
+        }
+        break;
+      case (ACTION_NA):
+        //do nothing, program should never trigger this
+        break;
     }
   
 
     
   }
+}
+
+//processes data from UI and interfaces with actuator task
+void controller_task(void *parameters){
+
 }
 
 

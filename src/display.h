@@ -15,6 +15,6 @@ void homeScreen();
 
 void displayMenu(MenuItem menu[], int menu_len);
 
-
+void displayAdjust(MenuItem item);
 
 #endif

@@ -99,8 +99,19 @@ void displayMenu(MenuItem menu[], int menu_len){
 
 void displayAdjust(MenuItem item){
   //tells the user what sensor they are adjusting and tells them to press "select" to finish
+  u8g2_ClearBuffer(&u8g2);
+  u8g2_DrawRFrame(&u8g2, 0, 0, 128, 64, 5);
+  u8g2_DrawStr(&u8g2, X_START, Y_START+0*Y_INC,"Turn dial to");
+  u8g2_DrawStr(&u8g2, X_START, Y_START+1*Y_INC,"adjust ");
+  u8g2_DrawStr(&u8g2, X_START+60, Y_START+1*Y_INC,item.name);
+  u8g2_DrawStr(&u8g2, X_START, Y_START+2*Y_INC,"Press button");
+  u8g2_DrawStr(&u8g2, X_START, Y_START+3*Y_INC,"to stop.");
+
+  u8g2_SendBuffer(&u8g2);
+
 
 }
+
 
 void displayToggle(MenuItem item, bool on){
   //tells the user what sensor they are toggling and tells them to press "select" to finish
