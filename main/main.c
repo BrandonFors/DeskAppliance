@@ -204,11 +204,15 @@ void user_interface(void *parameters){
       .actuator_id = chosen_actuator,
       .sender_id = UI
     };
+
     switch(chosen_action){
       case (MODE):
-
+        //modify the global actuator array state and switch the value of mode (use mutex)
+        //send a message to the controller to update the output of of the given actuator 
       case(TOGGLE):
         // displayToggle(actuator_menu[chosen_action], );
+        //modify the global actuator array state and switch the value of toggle (use mutex)
+        //send a message to the controller to update the output of of the given actuator 
         
         break;
       case (ADJUST):
@@ -226,12 +230,11 @@ void user_interface(void *parameters){
         break;
     }
   
-
     
   }
 }
 
-//processes data from UI and interfaces with actuator task
+//processes data from UI and interfaces with controller task
 void controller_task(void *parameters){
   ControllerMsg rec_instruct = {0};
   while(1){
@@ -241,7 +244,15 @@ void controller_task(void *parameters){
     }else if(rec_instruct.sender_id == UI){ // detect a message from the UI
       switch(rec_instruct.action_id){ // switch based on which action the user took
         //////
-      }
+        case(MODE):
+          break;
+        case(TOGGLE):
+          break;
+        case(ADJUST):
+          break;
+        default:
+          ESP_LOGE(TAG, "Controller case unhandled.");
+      } 
     }else{
       //do nothing
     }

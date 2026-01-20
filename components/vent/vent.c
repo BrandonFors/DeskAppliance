@@ -16,6 +16,7 @@
 static ledc_timer_config_t timer_config;
 static ledc_channel_config_t channel_config;
 static const char *TAG = "Vent Servo";
+static uint32_t current_duty;
 
 void vent_init(){
   timer_config = (ledc_timer_config_t){
@@ -44,6 +45,7 @@ void vent_init(){
   //fade func should only be called once and is also installed by lamp.c
   // ESP_ERROR_CHECK(ledc_fade_func_install(0));
 
+
 }
 
 uint32_t angle_to_duty(uint8_t angle){
@@ -58,10 +60,9 @@ uint32_t angle_to_duty(uint8_t angle){
 }
 
 void vent_set_angle(uint8_t angle){
-  uint32_t new_duty = angle_to_duty(angle);
-  ESP_LOGI(TAG, "Servo set to %" PRIu32 " duty.", new_duty);
+  current_duty = angle_to_duty(angle);
+  ESP_LOGI(TAG, "Servo set to %" PRIu32 " duty.", current_duty);
 
-  ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, new_duty, 0));
-
+  ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, current_duty, 0));
 
 }

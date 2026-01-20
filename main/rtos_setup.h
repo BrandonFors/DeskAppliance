@@ -4,7 +4,7 @@
 #include "freertos/FreeRTOS.h"
 
 #define BUTTON_QUEUE_LEN 1
-#define CONTROLLER_QUEUE_LEN 20
+#define CONTROLLER_QUEUE_LEN 10
 
 #define DEBOUNCE_TIME_MS 250
 
@@ -13,7 +13,8 @@ typedef enum {
   FAN = 0,
   VENT = 1,
   LAMP = 2,
-  ACTUATOR_NA = 3,
+  LEVEL = 3,
+  ACTUATOR_NA = 4,
 } Actuator_Id;
 
 typedef enum {

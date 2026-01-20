@@ -37,14 +37,14 @@ void potentiometer_init(){
   
   channel_config = (adc_oneshot_chan_cfg_t){
     .bitwidth = ADC_BITWIDTH_DEFAULT,
-    .atten = ADC_ATTEN_DB_11,
+    .atten = ADC_ATTEN_DB_12,
   };
   ESP_LOGI(TAG, "Creating ADC Oneshot Channel");
   ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, adc_channel, &channel_config));
 
   cali_config = (adc_cali_line_fitting_config_t){
     .unit_id = ADC_UNIT_1,
-    .atten = ADC_ATTEN_DB_11,
+    .atten = ADC_ATTEN_DB_12,
     .bitwidth = ADC_BITWIDTH_DEFAULT,
   };
 

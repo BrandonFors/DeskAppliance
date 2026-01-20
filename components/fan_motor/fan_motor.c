@@ -1,19 +1,70 @@
 #include "fan_motor.h"
-#include "driver/gpio.h"
 #include "board.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "driver/ledc.h"
+
+
+#define MAX_LAMP_DUTY 255
+#define MIN_LAMP_DUTY 0
+
+static ledc_timer_config_t timer_config;
+static ledc_channel_config_t channel_config;
+static const char *TAG = "Fan";
+
+static uint32_t current_duty;
+
+#define TIMER_FREQ 20000
 
 void fan_init(){
-  gpio_set_direction(MOTOR_PIN, GPIO_MODE_OUTPUT);
+  // create a configuration for the timer of the ledc
+  timer_config = (ledc_timer_config_t){
+    .speed_mode = LEDC_LOW_SPEED_MODE,
+    .duty_resolution = LEDC_TIMER_8_BIT,
+    .timer_num = LEDC_TIMER_2,
+    .freq_hz = TIMER_FREQ,
+    .clk_cfg = LEDC_AUTO_CLK,
+  };
+  
+  ESP_LOGI(TAG, "Configuring LEDC Timer");
+  ESP_ERROR_CHECK(ledc_timer_config(&timer_config));
+
+  //create a configuration for the channel of the ledc
+  channel_config = (ledc_channel_config_t){
+    .gpio_num = LAMP_PIN, 
+    .speed_mode = LEDC_LOW_SPEED_MODE,
+    .channel = LEDC_CHANNEL_2,
+    .timer_sel = LEDC_TIMER_2,
+    .duty = 0,
+    .hpoint = 0,
+  };
+  
+  ESP_LOGI(TAG, "Configuring LEDC Channel");
+  ESP_ERROR_CHECK(ledc_channel_config(&channel_config));
+
+  current_duty = 0;
+}
+
+//allow for the fan speed to be set with a integer value 0-100
+void fan_set_speed(uint8_t percent){
+  if(percent > 100){
+    percent = 100;
+  }else if(percent < 0){
+    percent = 0;
+  }
+  current_duty = MIN_LAMP_DUTY + (MAX_LAMP_DUTY - MIN_LAMP_DUTY)*(percent/100.0);
+
+  ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, current_duty, 0));
+  ESP_LOGI(TAG, "Fan set to %" PRIu32 " duty.", current_duty);
 
 }
 
 void fan_on(){
-  gpio_set_level(MOTOR_PIN, 1);
-
+  ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, current_duty, 0));
+  ESP_LOGI(TAG, "Fan set to %" PRIu32 " duty.", current_duty);
 }
 
 void fan_off(){
-  gpio_set_level(MOTOR_PIN, 0);
+  ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, 0, 0));
+  ESP_LOGI(TAG, "Fan set to 0 duty.");
 }
