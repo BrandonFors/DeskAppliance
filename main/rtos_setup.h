@@ -4,6 +4,7 @@
 #include "freertos/FreeRTOS.h"
 
 #define BUTTON_QUEUE_LEN 1
+#define CONTROLLER_QUEUE_LEN 20
 
 #define DEBOUNCE_TIME_MS 250
 
@@ -16,6 +17,14 @@ typedef enum {
 } Actuator_Id;
 
 typedef enum {
+  UI = 0,
+  CONTROLLER = 1,
+  POTENTIOMETER = 2,
+} Sender_Id;
+
+
+//struct used to 
+typedef enum {
   MODE = 0,
   TOGGLE = 1,
   ADJUST = 2,
@@ -23,19 +32,24 @@ typedef enum {
 } Action_Id;
 
 typedef struct {
-  Action_Id action_id;
-  Actuator_Id actuator_id;
-} Controller_Msg;
+  Actuator_Id actuator_id; 
+  Action_Id action_id; 
+  uint8_t pct; //used by ADC tasks
+  Sender_Id sender_id; 
+} ControllerMsg;
 
 typedef struct {
-  
+  bool is_auto;
+  bool is_on;
 } ActuatorState;
 
 
 
 //queue handles
 
-QueueHandle_t buttonQueue;
+QueueHandle_t buttonQueue; //handles button interrupts to UI task
+
+QueueHandle_t controllerQueue; //handles messages sent to controller
 
 
 //Task Handles 

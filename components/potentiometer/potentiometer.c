@@ -9,7 +9,7 @@
 //max adc reading
 #define MAX_READ 4095
 //max voltage that the potentiometer can read on wipper in mv
-#define MAX_VLTG_MV 877
+#define MAX_VLTG_MV 3300
 //number of samples adc uses to calculate an average adc reading
 #define NUM_SAMPLES 10
 
@@ -37,14 +37,14 @@ void potentiometer_init(){
   
   channel_config = (adc_oneshot_chan_cfg_t){
     .bitwidth = ADC_BITWIDTH_DEFAULT,
-    .atten = ADC_ATTEN_DB_0,
+    .atten = ADC_ATTEN_DB_11,
   };
   ESP_LOGI(TAG, "Creating ADC Oneshot Channel");
   ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, adc_channel, &channel_config));
 
   cali_config = (adc_cali_line_fitting_config_t){
     .unit_id = ADC_UNIT_1,
-    .atten = ADC_ATTEN_DB_0,
+    .atten = ADC_ATTEN_DB_11,
     .bitwidth = ADC_BITWIDTH_DEFAULT,
   };
 

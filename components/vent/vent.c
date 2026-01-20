@@ -9,8 +9,8 @@
 #define PWM_PERIOD_HZ 50 // pwm period in HZ
 #define PWM_PERIOD_MS 20000 //pwm period in ms
 //the following two values were tuned to my servo specifically
-#define MIN_PULSE_MS 575 // min pulse in us
-#define MAX_PULSE_MS 2600 // max pulse in us
+#define MIN_PULSE_MS 600 // min pulse in us
+#define MAX_PULSE_MS 2700 // max pulse in us
 #define MAX_DUTY 4096 // max duty cycle for 12 bit duty resolution
 
 static ledc_timer_config_t timer_config;

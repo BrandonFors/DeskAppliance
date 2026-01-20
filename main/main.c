@@ -27,7 +27,8 @@
 #define ACTUATOR_MENU_LEN (NUM_ACTUATORS + 1)
 #define ACTION_MENU_LEN   (NUM_ACTIONS + 1)
 
-static const BaseType_t app_cpu = 0;
+static const BaseType_t app_cpu = 1; //core for application purposes
+// static const BaseType_t pro_cpu = 0; //wifi core
 
 
 static char* TAG = "RTOS";
@@ -75,11 +76,9 @@ void start_up(){
 
 // task that handles all outputs (vent, fan, lamp, and level indicator)
 void actuators(void *parameters){
+
   while(1){
-
-
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-
 
   }
 
@@ -199,6 +198,12 @@ void user_interface(void *parameters){
 
     // //INTERFACE WITH CONTROLLER BASED ON DATA
     pressed = NA;
+    //construct a instruction for the controller with input data
+    ControllerMsg instruction = {
+      .action_id = chosen_action,
+      .actuator_id = chosen_actuator,
+      .sender_id = UI
+    };
     switch(chosen_action){
       case (MODE):
 
@@ -209,6 +214,7 @@ void user_interface(void *parameters){
       case (ADJUST):
         displayAdjust(actuator_menu[chosen_action]);
         //send data to controller and the controller will start sampling
+        xQueueSend(controllerQueue, &instruction, portMAX_DELAY);
         while(pressed != BUTTON_1 && pressed != BUTTON_2){ 
           if(xQueueReceive(buttonQueue, &pressed, portMAX_DELAY) == pdTRUE){
             //send data to the controller again and it will stop sampling
@@ -227,7 +233,19 @@ void user_interface(void *parameters){
 
 //processes data from UI and interfaces with actuator task
 void controller_task(void *parameters){
+  ControllerMsg rec_instruct = {0};
+  while(1){
+    xQueueReceive(controllerQueue, &rec_instruct, portMAX_DELAY);
+    if(rec_instruct.sender_id == POTENTIOMETER){
 
+    }else if(rec_instruct.sender_id == UI){ // detect a message from the UI
+      switch(rec_instruct.action_id){ // switch based on which action the user took
+        //////
+      }
+    }else{
+      //do nothing
+    }
+  }
 }
 
 
@@ -238,7 +256,7 @@ void app_main() {
 
   buttonQueue = xQueueCreate(BUTTON_QUEUE_LEN, sizeof(ButtonEvent));
 
-
+  controllerQueue = xQueueCreate(CONTROLLER_QUEUE_LEN, sizeof(ControllerMsg));
   
   ESP_LOGI(TAG, "Creating Tasks.");
 
