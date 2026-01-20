@@ -1,7 +1,12 @@
 #include "board.h"
 #include "rtos_setup.h"
+
+//esp headders
 #include "esp_err.h"
 #include "esp_log.h"
+#include "driver/gpio.h"
+#include "esp_timer.h"
+#include "driver/gptimer.h"
 
 //outputs
 #include "level_indicator.h"
@@ -14,12 +19,13 @@
 #include "potentiometer.h"
 #include "buttons.h"
 
-
+//rtos
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
-#include "driver/gpio.h"
-#include "esp_timer.h"
+
+
+
 
 
 #define NUM_ACTUATORS 3 
@@ -30,10 +36,54 @@
 static const BaseType_t app_cpu = 1; //core for application purposes
 // static const BaseType_t pro_cpu = 0; //wifi core
 
+//queue handles
+QueueHandle_t buttonQueue = NULL; //handles button interrupts to UI task
+QueueHandle_t controllerQueue = NULL; //handles messages sent to controller
+
+//Task Handles 
+TaskHandle_t userInterfaceTask = NULL;
+TaskHandle_t potentiometerSampleTask = NULL;
+TaskHandle_t tempPhotoSampleTask = NULL;
+
+//Mutex / Semaphores
+SemaphoreHandle_t fanMotorMutex = NULL; // handles access to the motor driver
+SemaphoreHandle_t ventMutex = NULL;
+SemaphoreHandle_t lampMutex = NULL;
 
 static char* TAG = "RTOS";
 
+//Holds data that UI task modifies based on user input and that controller task reads from
+//May convert this functionality into a queue in the future
+// static ActuatorState actuator_states[] = {
+//   {
+//     .actuator_id = FAN,
+//     .is_on = false,
+//     .is_auto = false,
+//   },
+//   {
+//     .actuator_id = VENT,
+//     .is_on = false,
+//     .is_auto = false,
+//   },
+//   {
+//     .actuator_id = LAMP,
+//     .is_on = false,
+//     .is_auto = false,
+//   }
+// };
+
 static uint64_t last_button_time[2] = {0}; // array to hold dobounce times
+
+/**************************************
+ * Private function prototypes
+ */
+void gpio_isr_handler(void* arg);
+bool signal_sample_pot(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx);
+void potentiometer_task(void *parameters);
+void start_up();
+void actuators(void *parameters);
+void user_interface(void *parameters);
+void controller_task(void *parameters);
 
 //button interrupt function
 void IRAM_ATTR gpio_isr_handler(void* arg){
@@ -47,10 +97,17 @@ void IRAM_ATTR gpio_isr_handler(void* arg){
   }
   last_button_time[button_idx] = now;
 
-  xQueueSendFromISR(buttonQueue, &button_pressed, &task_woken);
+  xQueueSendToBackFromISR(buttonQueue, &button_pressed, &task_woken);
   vTaskNotifyGiveFromISR(userInterfaceTask, &task_woken); //notify the ui task
   if(task_woken) portYIELD_FROM_ISR();
 
+}
+
+//signal the potentiometer_task 
+bool IRAM_ATTR signal_sample_pot(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx){
+  BaseType_t task_woken = pdFALSE;
+  vTaskNotifyGiveFromISR(potentiometerSampleTask, &task_woken);
+  return (task_woken == pdTRUE);
 }
 
 //startup function that will be called at the begeing of mcu running
@@ -70,6 +127,21 @@ void start_up(){
   gpio_isr_handler_add(BUT_1_PIN, gpio_isr_handler, (void *)BUTTON_1);
   gpio_isr_handler_add(BUT_2_PIN, gpio_isr_handler, (void *)BUTTON_2);
 
+  //create an event callback for potentiometer signal
+  gptimer_event_callbacks_t pot_signal_callback = {
+    .on_alarm = signal_sample_pot,
+  };
+
+  //register timer event callback function for sampling potentiometer values
+  ESP_ERROR_CHECK(gptimer_register_event_callbacks(pot_timer, &pot_signal_callback, NULL));
+
+  //enable pot timer
+  //timer will be started and stopped from the 
+  ESP_ERROR_CHECK(gptimer_enable(pot_timer));
+
+  //install fade functionality for ledc driver
+  ESP_ERROR_CHECK(ledc_fade_func_install(0));
+
 }
 
 
@@ -86,16 +158,29 @@ void actuators(void *parameters){
 
 
 
-void read_potentiometer(void *parameters){
+void potentiometer_task(void *parameters){
   while(1){
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     int pct = read_pot_pct();
     // ESP_LOGI(TAG, "Recieved pot reading of %d%%", pct);
     //send to actuator task 
     //actuator task will apply this value whereever it is relevant according to UI
-    vTaskDelay(100/portTICK_PERIOD_MS);
-  }
-  
+    ControllerMsg instruction = {
+      .pct = pct,
+      .sender_id = POTENTIOMETER,
+    };
+    if(xQueueSendToBack(controllerQueue, &instruction, 0) == pdFAIL){
+      ESP_LOGI(TAG, "Failed to send potentiometer reading");
+    }
+  } 
 }
+
+void read_temp_photo(void *parameters){
+  while(1){
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+}
+
 
 // handles all user interface display functionality and interactions
 
@@ -207,21 +292,24 @@ void user_interface(void *parameters){
 
     switch(chosen_action){
       case (MODE):
-        //modify the global actuator array state and switch the value of mode (use mutex)
+        
+        //query the respective driver for its mode (use mutex)
         //send a message to the controller to update the output of of the given actuator 
       case(TOGGLE):
+
         // displayToggle(actuator_menu[chosen_action], );
-        //modify the global actuator array state and switch the value of toggle (use mutex)
+        //query the respective driver for its mode (use mutex)
         //send a message to the controller to update the output of of the given actuator 
         
         break;
       case (ADJUST):
         displayAdjust(actuator_menu[chosen_action]);
         //send data to controller and the controller will start sampling
-        xQueueSend(controllerQueue, &instruction, portMAX_DELAY);
+        xQueueSendToBack(controllerQueue, &instruction, portMAX_DELAY);
         while(pressed != BUTTON_1 && pressed != BUTTON_2){ 
           if(xQueueReceive(buttonQueue, &pressed, portMAX_DELAY) == pdTRUE){
             //send data to the controller again and it will stop sampling
+            xQueueSendToBack(controllerQueue, &instruction, portMAX_DELAY);
           }
         }
         break;
@@ -237,25 +325,59 @@ void user_interface(void *parameters){
 //processes data from UI and interfaces with controller task
 void controller_task(void *parameters){
   ControllerMsg rec_instruct = {0};
+  Actuator_Id cur_adjust = NULL; // holds ID of whichever actuator potentiometers should be sent to
   while(1){
-    xQueueReceive(controllerQueue, &rec_instruct, portMAX_DELAY);
-    if(rec_instruct.sender_id == POTENTIOMETER){
+    if(xQueueReceive(controllerQueue, &rec_instruct, portMAX_DELAY) == pdTRUE){ // make sure queue item is recieved
+      if(rec_instruct.sender_id == POTENTIOMETER){
+        int percent = rec_instruct.pct;
+        //shift extreme values to 0 or 100
+        if(percent > 95){
+          percent = 100;
+        }else if(percent < 5){
+          percent = 0;
+        }
+        switch(cur_adjust){
+          case(FAN):
+            fan_set_speed(percent);
+            break;
+          case(VENT):
+            uint8_t angle = (percent*180)/100;
+            vent_set_angle(angle);
+            break;
+          case(LAMP):
+            lamp_set_brightness(percent);
+            break;
+          default:
+            //do nothing
+        }
+      }else if(rec_instruct.sender_id == UI){ // detect a message from the UI
+        switch(rec_instruct.action_id){ // switch based on which action the user took
+          //////
+          case(MODE):
+          //add mode toggle function for all actuators
+          //store state data in actuator drivers
+            break;
+          case(TOGGLE):
+          //add toggle function for all actuators
+            break;
+          case(ADJUST):
+            if(cur_adjust == NULL){
+              cur_adjust = rec_instruct.actuator_id;
+              ESP_ERROR_CHECK(gptimer_start(pot_timer));
+            }else{
+              cur_adjust = NULL;
+              ESP_ERROR_CHECK(gptimer_stop(pot_timer));
+            }
 
-    }else if(rec_instruct.sender_id == UI){ // detect a message from the UI
-      switch(rec_instruct.action_id){ // switch based on which action the user took
-        //////
-        case(MODE):
-          break;
-        case(TOGGLE):
-          break;
-        case(ADJUST):
-          break;
-        default:
-          ESP_LOGE(TAG, "Controller case unhandled.");
-      } 
-    }else{
-      //do nothing
+            break;
+          default:
+            ESP_LOGE(TAG, "Controller case unhandled.");
+        } 
+      }else{
+        //do nothing
+      }
     }
+    
   }
 }
 
@@ -263,20 +385,39 @@ void controller_task(void *parameters){
 void app_main() {
   start_up();
 
-  //setup handles for queues 
-
+  //setup handles for queues/mutexes/semaphores
   buttonQueue = xQueueCreate(BUTTON_QUEUE_LEN, sizeof(ButtonEvent));
-
+  if(buttonQueue == NULL){
+    ESP_LOGE(TAG, "Failed to create buttonQueue");
+  }
   controllerQueue = xQueueCreate(CONTROLLER_QUEUE_LEN, sizeof(ControllerMsg));
+  if(controllerQueue == NULL){
+    ESP_LOGE(TAG, "Failed to create controllerQueue");
+  }
   
+  fanMotorMutex = xSemaphoreCreateMutex();
+  if(fanMotorMutex == NULL){
+    ESP_LOGE(TAG, "Failed to create fanMotorMutex");
+  }
+  ventMutex = xSemaphoreCreateMutex();
+  if(ventMutex == NULL){
+    ESP_LOGE(TAG, "Failed to create ventMutex");
+  }
+  lampMutex = xSemaphoreCreateMutex();
+  if(lampMutex == NULL){
+    ESP_LOGE(TAG, "Failed to create lampMutex");
+  }
+
+
+
   ESP_LOGI(TAG, "Creating Tasks.");
 
   xTaskCreatePinnedToCore(
-    actuators,
-    "Actuator Task",
+    controller_task,
+    "Controller Task",
     2048,
     NULL,
-    1,
+    2,
     NULL,
     app_cpu
   );
@@ -292,12 +433,22 @@ void app_main() {
   );
 
   xTaskCreatePinnedToCore(
-    read_potentiometer,
-    "Pot Test",
+    potentiometer_task,
+    "Pot Read",
     4096,
     NULL,
-    1,
+    4,
+    &potentiometerSampleTask,
+    app_cpu
+  );
+
+  xTaskCreatePinnedToCore(
+    read_temp_photo,
+    "Read Temp and Photo",
+    1024,
     NULL,
+    3,
+    &tempPhotoSampleTask,
     app_cpu
   );
 

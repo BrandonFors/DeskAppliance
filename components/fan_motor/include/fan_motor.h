@@ -2,6 +2,7 @@
 #define FAN_MOTOR_H
 
 void fan_init();
+void fan_set_speed(uint8_t percent);
 void fan_on();
 void fan_off();
 

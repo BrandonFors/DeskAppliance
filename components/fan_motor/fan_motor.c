@@ -43,6 +43,9 @@ void fan_init(){
   ESP_ERROR_CHECK(ledc_channel_config(&channel_config));
 
   current_duty = 0;
+
+  // be sure to run ledc_fade_func_install(0); in main
+  //this allows the ledc to transition between duty cycle values smoothly
 }
 
 //allow for the fan speed to be set with a integer value 0-100

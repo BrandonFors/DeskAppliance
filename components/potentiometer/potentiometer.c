@@ -1,6 +1,8 @@
 #include "potentiometer.h"
 #include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
+#include "driver/gptimer.h"
+
 #include "esp_err.h"
 #include "esp_log.h"
 #include <stdint.h>
@@ -13,6 +15,7 @@
 //number of samples adc uses to calculate an average adc reading
 #define NUM_SAMPLES 10
 
+//adc variables
 static adc_channel_t adc_channel;
 static adc_oneshot_unit_handle_t adc_handle;
 static adc_oneshot_unit_init_cfg_t init_config;
@@ -20,7 +23,7 @@ static adc_oneshot_chan_cfg_t channel_config;
 static adc_cali_line_fitting_config_t cali_config;
 static adc_cali_handle_t adc_cali_handle;
 
-
+gptimer_handle_t pot_timer;
 
 static char *TAG = "Potentiometer";
 
@@ -52,6 +55,25 @@ void potentiometer_init(){
   ESP_ERROR_CHECK(adc_cali_create_scheme_line_fitting(&cali_config, &adc_cali_handle));
 
 
+  //set up gptimer for interrupts
+  gptimer_config_t timer_config = {
+    .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+    .direction = GPTIMER_COUNT_UP,
+    .resolution_hz = 1000000,
+    .intr_priority = 0,
+  };
+  //create timer instance
+  ESP_ERROR_CHECK(gptimer_new_timer(&timer_config, &pot_timer));
+
+  gptimer_alarm_config_t alarm_config = {
+    .reload_count = 0,
+    .alarm_count = 1000000/4, // the first digit is the resolution: divide by desired sampling Hz (make sure result is an int)
+    .flags.auto_reload_on_alarm = true,
+  };
+  //set the timer's alarm action
+  ESP_ERROR_CHECK(gptimer_set_alarm_action(pot_timer, &alarm_config));
+
+  // register event callbacks in main.c
 }
 
 // In my setup, the potentiomter reads in a way that is counter intuitive

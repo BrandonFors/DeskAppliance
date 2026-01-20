@@ -46,10 +46,10 @@ void lamp_init(){
   ESP_LOGI(TAG, "Configuring LEDC Channel");
   ESP_ERROR_CHECK(ledc_channel_config(&channel_config));
 
-  //installs fade functionality so that ledc can transition between duty cycle values
-  ESP_ERROR_CHECK(ledc_fade_func_install(0)); // esp32 threw an error when i didnt include this
-
   current_duty = 0;
+
+  // be sure to run ledc_fade_func_install(0); in main
+  //this allows the ledc to transition between duty cycle values smoothly
 
 }
 

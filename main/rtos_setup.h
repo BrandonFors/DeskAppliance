@@ -35,27 +35,17 @@ typedef enum {
 typedef struct {
   Actuator_Id actuator_id; 
   Action_Id action_id; 
-  uint8_t pct; //used by ADC tasks
   Sender_Id sender_id; 
+  int pct; //used by ADC tasks
 } ControllerMsg;
 
 typedef struct {
+  Actuator_Id actuator_id;
   bool is_auto;
   bool is_on;
 } ActuatorState;
 
 
-
-//queue handles
-
-QueueHandle_t buttonQueue; //handles button interrupts to UI task
-
-QueueHandle_t controllerQueue; //handles messages sent to controller
-
-
-//Task Handles 
-
-TaskHandle_t userInterfaceTask;
 
 
 void gpio_isr_handler(void* arg);

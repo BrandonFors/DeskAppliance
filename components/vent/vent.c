@@ -42,10 +42,11 @@ void vent_init(){
 
   ESP_LOGI(TAG, "Configuring LEDC Channel");
   ESP_ERROR_CHECK(ledc_channel_config(&channel_config));
-  //fade func should only be called once and is also installed by lamp.c
-  // ESP_ERROR_CHECK(ledc_fade_func_install(0));
 
-
+  current_duty = 0;
+  
+  // be sure to run ledc_fade_func_install(0); in main
+  //this allows the ledc to transition between duty cycle values smoothly
 }
 
 uint32_t angle_to_duty(uint8_t angle){
