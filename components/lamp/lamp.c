@@ -8,16 +8,18 @@
 
 
 //these values represent the min and max duty cycle when the lamp is in a usable state
-#define MAX_LAMP_DUTY 255
+#define MAX_LAMP_DUTY 200
 #define MIN_LAMP_DUTY 115
+#define TIMER_FREQ 250000 
 
 static ledc_timer_config_t timer_config;
 static ledc_channel_config_t channel_config;
 static const char *TAG = "Lamp";
 
 static uint32_t current_duty;
+static bool is_enabled = NULL;
+static bool is_auto = NULL;
 
-#define TIMER_FREQ 250000 
 
 void lamp_init(){
   // create a configuration for the timer of the ledc
@@ -47,10 +49,17 @@ void lamp_init(){
   ESP_ERROR_CHECK(ledc_channel_config(&channel_config));
 
   current_duty = 0;
+  is_enabled = true;
+  is_auto = false;
 
   // be sure to run ledc_fade_func_install(0); in main
   //this allows the ledc to transition between duty cycle values smoothly
 
+}
+
+void update_lamp_duty(uint32_t duty){
+  ESP_LOGI(TAG, "Lamp set to %" PRIu32 " duty.", duty);
+  ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty, 0));
 }
 
 //set brightness using a int from 0-100 (%)
@@ -62,8 +71,30 @@ void lamp_set_brightness(uint8_t percent){
   if(current_duty < MIN_LAMP_DUTY + 5){
     current_duty = 0; // turn bulb off if the the duty is close to the min
   }
-  ESP_LOGI(TAG, "Lamp set to %" PRIu32 " duty.", current_duty);
-  ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, current_duty, 0));
+  update_lamp_duty(current_duty);
+}
+
+bool get_lamp_is_auto(){
+  return is_auto;
+}
+
+bool get_lamp_is_enabled(){
+  return is_enabled;
+}
+
+void lamp_toggle_auto(){
+  is_auto = !is_auto;
+}
+
+void lamp_toggle_enabled(){
+  is_enabled = !is_enabled;
+  if(is_enabled){
+    ESP_LOGI(TAG, "Lamp has been enabled");
+    update_lamp_duty(current_duty); //update the last duty that was set by the user to the driver
+  }else{
+    ESP_LOGI(TAG, "Lamp has been disabled");
+    update_lamp_duty(0); // push duty directly to avoid overwriting user set duty
+  }
 }
 
 //turn lamp on from the stored duty cycle

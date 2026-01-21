@@ -270,9 +270,23 @@ void user_interface(void *parameters){
         //query the respective driver for its mode (use mutex)
         //send a message to the controller to update the output of of the given actuator 
       case(TOGGLE):
-        xSemaphoreTake(ventMutex, portMAX_DELAY);
-        bool enabled = get_vent_is_enabled();
-        xSemaphoreGive(ventMutex);
+        //get current enable status from chosen driver
+        bool enabled = NULL;
+        if(chosen_actuator == FAN){
+          xSemaphoreTake(fanMotorMutex, portMAX_DELAY);
+          enabled = get_fan_is_enabled();
+          xSemaphoreGive(fanMotorMutex);
+        }else if(chosen_actuator == VENT){
+          xSemaphoreTake(ventMutex, portMAX_DELAY);
+          enabled = get_vent_is_enabled();
+          xSemaphoreGive(ventMutex);
+        }else if(chosen_actuator == LAMP){
+          xSemaphoreTake(lampMutex, portMAX_DELAY);
+          enabled = get_lamp_is_enabled();
+          xSemaphoreGive(lampMutex);
+        }else{
+          ESP_LOGI(TAG, "Unhandled acutator ID in TOGGLE case");
+        }
         displayToggle(actuator_menu[chosen_action], enabled);
         //query the respective driver for its mode (use mutex)
         //send a message to the controller to update the output of of the given actuator 
@@ -346,11 +360,19 @@ void controller_task(void *parameters){
           case(TOGGLE):
             switch(rec_instruct.action_id){
               case(FAN):
+                xSemaphoreTake(fanMotorMutex, portMAX_DELAY);
+                fan_toggle_enabled();
+                xSemaphoreGive(fanMotorMutex);
                 break;
               case(VENT):
+                xSemaphoreTake(ventMutex, portMAX_DELAY);
                 vent_toggle_enabled();
+                xSemaphoreGive(ventMutex);
                 break;
               case(LAMP):
+                xSemaphoreTake(lampMutex, portMAX_DELAY);
+                lamp_toggle_enabled();
+                xSemaphoreGive(lampMutex);
                 break;
               default:
             }            

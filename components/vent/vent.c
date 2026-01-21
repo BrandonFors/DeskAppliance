@@ -18,8 +18,8 @@ static ledc_channel_config_t channel_config;
 static const char *TAG = "Vent Servo";
 static uint32_t current_duty;
 
-bool is_enabled = NULL;
-bool is_auto = NULL;
+static bool is_enabled = NULL;
+static bool is_auto = NULL;
 
 void vent_init(){
   timer_config = (ledc_timer_config_t){
@@ -65,16 +65,16 @@ uint32_t angle_to_duty(uint8_t angle){
 }
 
 //sends duty to the ledc driver and updates the value output
-void update_duty(uint32_t duty){
+void update_vent_duty(uint32_t duty){
   ESP_LOGI(TAG, "Servo set to %" PRIu32 " duty.", duty);
-  ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, current_duty, 0));
+  ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, duty, 0));
 }
 
 void vent_set_duty(uint32_t new_duty){
 
   current_duty = new_duty;
   if(is_enabled){
-    update_duty(new_duty);
+    update_vent_duty(new_duty);
   }
 }
 
@@ -82,7 +82,7 @@ void vent_set_angle(uint8_t angle){
   current_duty = angle_to_duty(angle);
   //vent myst be on and not in auto mode
   if(is_enabled){
-    update_duty(current_duty);
+    update_vent_duty(current_duty);
   }
 }
 
@@ -103,11 +103,11 @@ void vent_toggle_enabled(){
   is_enabled = !is_enabled;
   if(is_enabled){
     ESP_LOGI(TAG, "Vent has been enabled");
-    update_duty(current_duty); //update the last duty that was set by the user to the driver
+    update_vent_duty(current_duty); //update the last duty that was set by the user to the driver
   }else{
     ESP_LOGI(TAG, "Vent has been disabled");
     uint8_t duty = angle_to_duty(0); //get duty for angle 0 (closed position)
-    update_duty(duty); // push duty directly to avoid overwriting user set duty
+    update_vent_duty(duty); // push duty directly to avoid overwriting user set duty
   }
 }
 
