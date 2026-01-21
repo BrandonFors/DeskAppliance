@@ -7,6 +7,7 @@
 #include "driver/gpio.h"
 #include "esp_timer.h"
 #include "driver/gptimer.h"
+#include "driver/ledc.h"
 
 //outputs
 #include "level_indicator.h"
@@ -52,25 +53,6 @@ SemaphoreHandle_t lampMutex = NULL;
 
 static char* TAG = "RTOS";
 
-//Holds data that UI task modifies based on user input and that controller task reads from
-//May convert this functionality into a queue in the future
-// static ActuatorState actuator_states[] = {
-//   {
-//     .actuator_id = FAN,
-//     .is_on = false,
-//     .is_auto = false,
-//   },
-//   {
-//     .actuator_id = VENT,
-//     .is_on = false,
-//     .is_auto = false,
-//   },
-//   {
-//     .actuator_id = LAMP,
-//     .is_on = false,
-//     .is_auto = false,
-//   }
-// };
 
 static uint64_t last_button_time[2] = {0}; // array to hold dobounce times
 
@@ -81,7 +63,6 @@ void gpio_isr_handler(void* arg);
 bool signal_sample_pot(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx);
 void potentiometer_task(void *parameters);
 void start_up();
-void actuators(void *parameters);
 void user_interface(void *parameters);
 void controller_task(void *parameters);
 
@@ -142,19 +123,12 @@ void start_up(){
   //install fade functionality for ledc driver
   ESP_ERROR_CHECK(ledc_fade_func_install(0));
 
-}
-
-
-
-// task that handles all outputs (vent, fan, lamp, and level indicator)
-void actuators(void *parameters){
-
-  while(1){
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-  }
+  //set level indicator to 0 as potentiometer is not being sampled
+  set_level_indicator(0);
 
 }
+
+
 
 
 
@@ -296,11 +270,21 @@ void user_interface(void *parameters){
         //query the respective driver for its mode (use mutex)
         //send a message to the controller to update the output of of the given actuator 
       case(TOGGLE):
-
-        // displayToggle(actuator_menu[chosen_action], );
+        xSemaphoreTake(ventMutex, portMAX_DELAY);
+        bool enabled = get_vent_is_enabled();
+        xSemaphoreGive(ventMutex);
+        displayToggle(actuator_menu[chosen_action], enabled);
         //query the respective driver for its mode (use mutex)
         //send a message to the controller to update the output of of the given actuator 
-        
+        while(pressed != BUTTON_1){ 
+          if(xQueueReceive(buttonQueue, &pressed, portMAX_DELAY) == pdTRUE){
+            if(pressed == BUTTON_2){ // only toggle on/off if button 2 (down) is pressed
+              enabled = !enabled;
+              xQueueSendToBack(controllerQueue, &instruction, portMAX_DELAY);
+              displayToggle(actuator_menu[chosen_action], enabled);
+            }
+          }
+        }
         break;
       case (ADJUST):
         displayAdjust(actuator_menu[chosen_action]);
@@ -325,7 +309,7 @@ void user_interface(void *parameters){
 //processes data from UI and interfaces with controller task
 void controller_task(void *parameters){
   ControllerMsg rec_instruct = {0};
-  Actuator_Id cur_adjust = NULL; // holds ID of whichever actuator potentiometers should be sent to
+  Actuator_Id cur_adjust = ACTUATOR_NA; // holds ID of whichever actuator potentiometers should be sent to
   while(1){
     if(xQueueReceive(controllerQueue, &rec_instruct, portMAX_DELAY) == pdTRUE){ // make sure queue item is recieved
       if(rec_instruct.sender_id == POTENTIOMETER){
@@ -336,6 +320,7 @@ void controller_task(void *parameters){
         }else if(percent < 5){
           percent = 0;
         }
+        set_level_indicator_from_pct(percent);
         switch(cur_adjust){
           case(FAN):
             fan_set_speed(percent);
@@ -352,21 +337,32 @@ void controller_task(void *parameters){
         }
       }else if(rec_instruct.sender_id == UI){ // detect a message from the UI
         switch(rec_instruct.action_id){ // switch based on which action the user took
-          //////
+          ///////// MODE SWITCH
           case(MODE):
           //add mode toggle function for all actuators
           //store state data in actuator drivers
             break;
+          ///////// TOGGLE switch
           case(TOGGLE):
-          //add toggle function for all actuators
+            switch(rec_instruct.action_id){
+              case(FAN):
+                break;
+              case(VENT):
+                vent_toggle_enabled();
+                break;
+              case(LAMP):
+                break;
+              default:
+            }            
             break;
           case(ADJUST):
-            if(cur_adjust == NULL){
+            if(cur_adjust == ACTUATOR_NA){
               cur_adjust = rec_instruct.actuator_id;
               ESP_ERROR_CHECK(gptimer_start(pot_timer));
             }else{
-              cur_adjust = NULL;
+              cur_adjust = ACTUATOR_NA;
               ESP_ERROR_CHECK(gptimer_stop(pot_timer));
+              set_level_indicator(0);
             }
 
             break;

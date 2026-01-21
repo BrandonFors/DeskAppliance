@@ -9,7 +9,7 @@
 
 //these values represent the min and max duty cycle when the lamp is in a usable state
 #define MAX_LAMP_DUTY 255
-#define MIN_LAMP_DUTY 0
+#define MIN_LAMP_DUTY 115
 
 static ledc_timer_config_t timer_config;
 static ledc_channel_config_t channel_config;
@@ -17,7 +17,7 @@ static const char *TAG = "Lamp";
 
 static uint32_t current_duty;
 
-#define TIMER_FREQ 1000 
+#define TIMER_FREQ 250000 
 
 void lamp_init(){
   // create a configuration for the timer of the ledc
@@ -57,11 +57,11 @@ void lamp_init(){
 void lamp_set_brightness(uint8_t percent){
   if(percent > 100){
     percent = 100;
-  }else if(percent < 0){
-    percent = 0;
   }
   current_duty = MIN_LAMP_DUTY + (MAX_LAMP_DUTY - MIN_LAMP_DUTY)*(percent/100.0);
-  
+  if(current_duty < MIN_LAMP_DUTY + 5){
+    current_duty = 0; // turn bulb off if the the duty is close to the min
+  }
   ESP_LOGI(TAG, "Lamp set to %" PRIu32 " duty.", current_duty);
   ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, current_duty, 0));
 }

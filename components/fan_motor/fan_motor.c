@@ -3,11 +3,11 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "driver/ledc.h"
+#include <stdint.h>
 
-
-#define MAX_LAMP_DUTY 255
-#define MIN_LAMP_DUTY 0
-
+//tuned to useable values
+#define MAX_FAN_DUTY 255
+#define MIN_FAN_DUTY 90
 static ledc_timer_config_t timer_config;
 static ledc_channel_config_t channel_config;
 static const char *TAG = "Fan";
@@ -31,7 +31,7 @@ void fan_init(){
 
   //create a configuration for the channel of the ledc
   channel_config = (ledc_channel_config_t){
-    .gpio_num = LAMP_PIN, 
+    .gpio_num = MOTOR_PIN, 
     .speed_mode = LEDC_LOW_SPEED_MODE,
     .channel = LEDC_CHANNEL_2,
     .timer_sel = LEDC_TIMER_2,
@@ -44,18 +44,20 @@ void fan_init(){
 
   current_duty = 0;
 
-  // be sure to run ledc_fade_func_install(0); in main
+  // be sure to run ledc_fade_func_install(0); in main 
   //this allows the ledc to transition between duty cycle values smoothly
 }
 
 //allow for the fan speed to be set with a integer value 0-100
 void fan_set_speed(uint8_t percent){
+  //limits percent to 100, a uint8_t can never be below 0
   if(percent > 100){
     percent = 100;
-  }else if(percent < 0){
-    percent = 0;
   }
-  current_duty = MIN_LAMP_DUTY + (MAX_LAMP_DUTY - MIN_LAMP_DUTY)*(percent/100.0);
+  current_duty = MIN_FAN_DUTY + (MAX_FAN_DUTY - MIN_FAN_DUTY)*(percent/100.0);
+  if(current_duty < MIN_FAN_DUTY+5){
+    current_duty = 0; //set duty to 0 (off) if the dial is close to its lowest position
+  }
 
   ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, current_duty, 0));
   ESP_LOGI(TAG, "Fan set to %" PRIu32 " duty.", current_duty);

@@ -28,7 +28,7 @@ gptimer_handle_t pot_timer;
 static char *TAG = "Potentiometer";
 
 void potentiometer_init(){
-  adc_channel = ADC_CHANNEL_0;
+  adc_channel = ADC_CHANNEL_4;
 
   init_config = (adc_oneshot_unit_init_cfg_t){
     .unit_id = ADC_UNIT_1,

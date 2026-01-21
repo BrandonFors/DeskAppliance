@@ -4,7 +4,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "board.h"
-
+#include <stdint.h>
 
 // for spi interaction with the ic
 static spi_device_handle_t spi_handle;
@@ -51,7 +51,7 @@ void indicator_init(){
   };
 }
 
-void set_level(int lvl){
+void set_level_indicator(int lvl){
   sendbuf = 0b00000000;
 
   for(int i = 0; i < lvl; i++){
@@ -62,5 +62,26 @@ void set_level(int lvl){
   gpio_set_level(LATCH, 0);
   spi_device_transmit(spi_handle, &t);
   gpio_set_level(LATCH, 1);
+
+}
+
+void set_level_indicator_from_pct(uint8_t percent){
+  if(percent > 100){
+    percent = 100;
+  }
+
+  if(percent > 80){
+    set_level_indicator(5);
+  }else if(percent > 60){
+    set_level_indicator(4);
+  }else if(percent > 40){
+    set_level_indicator(3);
+  }else if(percent > 20){
+    set_level_indicator(2);
+  }else if(percent > 1){
+    set_level_indicator(1);
+  }else if(percent == 0){
+    set_level_indicator(0);
+  }
 
 }

@@ -18,6 +18,9 @@ static ledc_channel_config_t channel_config;
 static const char *TAG = "Vent Servo";
 static uint32_t current_duty;
 
+bool is_enabled = NULL;
+bool is_auto = NULL;
+
 void vent_init(){
   timer_config = (ledc_timer_config_t){
     .speed_mode = LEDC_LOW_SPEED_MODE,
@@ -44,8 +47,9 @@ void vent_init(){
   ESP_ERROR_CHECK(ledc_channel_config(&channel_config));
 
   current_duty = 0;
-  
-  // be sure to run ledc_fade_func_install(0); in main
+  is_enabled = true;
+  is_auto = false;
+  // be sure to run ledc_fade_func_install(0); in main 
   //this allows the ledc to transition between duty cycle values smoothly
 }
 
@@ -60,10 +64,50 @@ uint32_t angle_to_duty(uint8_t angle){
   return pulse*MAX_DUTY/PWM_PERIOD_MS;
 }
 
+//sends duty to the ledc driver and updates the value output
+void update_duty(uint32_t duty){
+  ESP_LOGI(TAG, "Servo set to %" PRIu32 " duty.", duty);
+  ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, current_duty, 0));
+}
+
+void vent_set_duty(uint32_t new_duty){
+
+  current_duty = new_duty;
+  if(is_enabled){
+    update_duty(new_duty);
+  }
+}
+
 void vent_set_angle(uint8_t angle){
   current_duty = angle_to_duty(angle);
-  ESP_LOGI(TAG, "Servo set to %" PRIu32 " duty.", current_duty);
-
-  ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, current_duty, 0));
-
+  //vent myst be on and not in auto mode
+  if(is_enabled){
+    update_duty(current_duty);
+  }
 }
+
+
+bool get_vent_is_auto(){
+  return is_auto;
+}
+
+bool get_vent_is_enabled(){
+  return is_enabled;
+}
+
+void vent_toggle_auto(){
+  is_auto = !is_auto;
+}
+
+void vent_toggle_enabled(){
+  is_enabled = !is_enabled;
+  if(is_enabled){
+    ESP_LOGI(TAG, "Vent has been enabled");
+    update_duty(current_duty); //update the last duty that was set by the user to the driver
+  }else{
+    ESP_LOGI(TAG, "Vent has been disabled");
+    uint8_t duty = angle_to_duty(0); //get duty for angle 0 (closed position)
+    update_duty(duty); // push duty directly to avoid overwriting user set duty
+  }
+}
+

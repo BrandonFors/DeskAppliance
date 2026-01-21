@@ -117,4 +117,19 @@ void displayToggle(MenuItem item, bool on){
   //tells the user what sensor they are toggling and tells them to press "select" to finish
   //tells the user to use down button to toggle
   //displays whether device is on or off
+
+  u8g2_ClearBuffer(&u8g2);
+  u8g2_DrawRFrame(&u8g2, 0, 0, 128, 64, 5);
+  u8g2_DrawStr(&u8g2, X_START, Y_START+0*Y_INC,"Press down to");
+  u8g2_DrawStr(&u8g2, X_START, Y_START+1*Y_INC,"turn ");
+  u8g2_DrawStr(&u8g2, X_START+40, Y_START+1*Y_INC,item.name);
+  if(on){
+    u8g2_DrawStr(&u8g2, X_START+80, Y_START+1*Y_INC,"OFF");
+  }else{
+    u8g2_DrawStr(&u8g2, X_START+80, Y_START+1*Y_INC,"ON");
+  }
+  u8g2_DrawStr(&u8g2, X_START, Y_START+2*Y_INC,"Press select");
+  u8g2_DrawStr(&u8g2, X_START, Y_START+3*Y_INC,"to stop.");
+
+  u8g2_SendBuffer(&u8g2);
 }
