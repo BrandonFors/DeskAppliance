@@ -11,6 +11,7 @@
 #define MAX_LAMP_DUTY 200
 #define MIN_LAMP_DUTY 115
 #define TIMER_FREQ 250000 
+#define SENSOR_THRESH 75
 
 static ledc_timer_config_t timer_config;
 static ledc_channel_config_t channel_config;
@@ -18,7 +19,8 @@ static const char *TAG = "Lamp";
 
 static uint32_t current_duty;
 static bool is_enabled = NULL;
-
+static bool is_auto = NULL;
+static bool auto_on = NULL;
 
 void lamp_init(){
   // create a configuration for the timer of the ledc
@@ -49,6 +51,7 @@ void lamp_init(){
 
   current_duty = 0;
   is_enabled = true;
+  is_auto = false;
 
   // be sure to run ledc_fade_func_install(0); in main
   //this allows the ledc to transition between duty cycle values smoothly
@@ -69,21 +72,36 @@ void lamp_set_brightness(uint8_t percent){
   if(current_duty < MIN_LAMP_DUTY + 5){
     current_duty = 0; // turn bulb off if the the duty is close to the min
   }
-  if(is_enabled){
+  if(is_enabled && (auto_on || !is_auto)){
     update_lamp_duty(current_duty);
   }
+
 }
 
+bool get_lamp_is_auto(){
+  return is_auto;
+}
 
 bool get_lamp_is_enabled(){
   return is_enabled;
+}
+
+void lamp_toggle_auto(){
+  is_auto = !is_auto;
+  //if auto was switched off and the lamp was off, turn the lamp back to user defined value
+  if(!is_auto && !auto_on){ 
+    update_lamp_duty(current_duty);
+  }
 }
 
 void lamp_toggle_enabled(){
   is_enabled = !is_enabled;
   if(is_enabled){
     ESP_LOGI(TAG, "Lamp has been enabled");
-    update_lamp_duty(current_duty); //update the last duty that was set by the user to the driver
+    //either the device has automatically been switched on or automatic mode is off
+    if(auto_on || !is_auto){
+      update_lamp_duty(current_duty); //update the last duty that was set by the user to the driver
+    }
   }else{
     ESP_LOGI(TAG, "Lamp has been disabled");
     update_lamp_duty(0); // push duty directly to avoid overwriting user set duty
@@ -101,4 +119,20 @@ void lamp_on(){
 void lamp_off(){
   ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0, 0));
   ESP_LOGI(TAG, "Lamp set to 0 duty.");
+}
+
+
+// if the sent in percentage is greater than the set threshold, turn the fan on, otherwise off
+void lamp_send_sensor_pct(uint8_t sensor_pct){
+  if((sensor_pct >= SENSOR_THRESH) != auto_on){
+    auto_on = !auto_on;
+    if(is_auto){ // if auto is enabled for the device
+      if(auto_on){ // if the sensor threshold was reached
+        update_lamp_duty(current_duty);
+      }else{
+        update_lamp_duty(0);
+      } 
+    }
+  }
+  
 }

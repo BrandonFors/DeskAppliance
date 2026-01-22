@@ -13,12 +13,17 @@
 #define MAX_PULSE_MS 2700 // max pulse in us
 #define MAX_DUTY 4096 // max duty cycle for 12 bit duty resolution
 
+#define SENSOR_THRESH 75
+
+
 static ledc_timer_config_t timer_config;
 static ledc_channel_config_t channel_config;
 static const char *TAG = "Vent Servo";
 static uint32_t current_duty;
 
 static bool is_enabled = NULL;
+static bool is_auto = NULL;
+static bool auto_on = NULL;
 
 void vent_init(){
   timer_config = (ledc_timer_config_t){
@@ -47,6 +52,7 @@ void vent_init(){
 
   current_duty = 0;
   is_enabled = true;
+  is_auto = false;
   // be sure to run ledc_fade_func_install(0); in main 
   //this allows the ledc to transition between duty cycle values smoothly
 }
@@ -68,19 +74,12 @@ void update_vent_duty(uint32_t duty){
   ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, duty, 0));
 }
 
-void vent_set_duty(uint32_t new_duty){
-
-  current_duty = new_duty;
-  if(is_enabled){
-    update_vent_duty(new_duty);
-  }
-}
-
-// fxn for manual control 
+// fxn for manual control by user
 void vent_set_angle(uint8_t angle){ 
   current_duty = angle_to_duty(angle);
-  //vent myst be on and not in auto mode
-  if(is_enabled){
+  //only updates input if conditions for an active vent are met
+  //ie vent is enabled and either automatically turned on or auto mode is turned off
+  if(is_enabled && (auto_on || !is_auto)){
     update_vent_duty(current_duty);
   }
 }
@@ -89,10 +88,21 @@ void vent_set_angle(uint8_t angle){
 
 
 
+bool get_vent_is_auto(){
+  return is_auto;
+}
+
 bool get_vent_is_enabled(){
   return is_enabled;
 }
 
+void vent_toggle_auto(){
+  is_auto = !is_auto;
+  //if auto was switched off and the vent was off, turn the vent back to user defined value
+  if(!is_auto && !auto_on){ 
+    update_vent_duty(current_duty);
+  }
+}
 
 void vent_toggle_enabled(){
   is_enabled = !is_enabled;
@@ -106,3 +116,17 @@ void vent_toggle_enabled(){
   }
 }
 
+// if the sent in percentage is greater than the set threshold, turn the fan on, otherwise off
+void vent_send_sensor_pct(uint8_t sensor_pct){
+  if((sensor_pct >= SENSOR_THRESH) != auto_on){
+    auto_on = !auto_on;
+    if(is_auto){ // if auto is enabled for the device
+      if(auto_on){ // if the sensor threshold was reached
+        update_vent_duty(current_duty);
+      }else{
+        update_vent_duty(angle_to_duty(0));
+      } 
+    }
+  }
+  
+}

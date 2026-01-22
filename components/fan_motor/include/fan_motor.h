@@ -11,6 +11,6 @@ bool get_fan_is_auto();
 bool get_fan_is_enabled();
 void fan_toggle_auto();
 void fan_toggle_enabled();
-
+void fan_send_sensor_pct(uint8_t sensor_pct);
 
 #endif

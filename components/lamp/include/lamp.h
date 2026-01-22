@@ -11,5 +11,6 @@ void lamp_toggle_auto();
 void lamp_toggle_enabled();
 void lamp_off();
 void lamp_on();
+void lamp_send_sensor_pct(uint8_t sensor_pct);
 
 #endif

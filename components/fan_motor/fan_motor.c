@@ -9,14 +9,16 @@
 #define MAX_FAN_DUTY 255
 #define MIN_FAN_DUTY 90
 #define TIMER_FREQ 20000
+#define SENSOR_THRESH 75
 static ledc_timer_config_t timer_config;
 static ledc_channel_config_t channel_config;
 static const char *TAG = "Fan";
 
 static uint32_t current_duty;
 
-bool is_enabled = NULL;
-
+static bool is_enabled = NULL;
+static bool is_auto = NULL;
+static bool auto_on = NULL;
 
 
 
@@ -48,6 +50,7 @@ void fan_init(){
 
   current_duty = 0;
 
+  is_auto = false;
   is_enabled = true;
 
   // be sure to run ledc_fade_func_install(0); in main 
@@ -69,24 +72,42 @@ void fan_set_speed(uint8_t percent){
   if(current_duty < MIN_FAN_DUTY+5){
     current_duty = 0; //set duty to 0 (off) if the dial is close to its lowest position
   }
-  if(is_enabled){
+  //only updates input if conditions for an active fan are met
+  //ie fan is enabled and either automatically turned on or auto mode is turned off
+  if(is_enabled && (auto_on || !is_auto)){
     update_fan_duty(current_duty);
   }
 
+}
+
+bool get_fan_is_auto(){
+  return is_auto;
 }
 
 bool get_fan_is_enabled(){
   return is_enabled;
 }
 
+void fan_toggle_auto(){
+  is_auto = !is_auto;
+  //if auto was switched off and the fan was off, turn the fan back to user defined value
+  if(!is_auto && !auto_on){ 
+    update_fan_duty(current_duty);
+  }
+}
+
 void fan_toggle_enabled(){
   is_enabled = !is_enabled;
+  // if the device is enabled 
   if(is_enabled){
     ESP_LOGI(TAG, "Fan has been enabled");
-    update_fan_duty(current_duty); //update the last duty that was set by the user to the driver
+    //either the device has automatically been switched on or automatic mode is off
+    if(auto_on || !is_auto){
+      update_fan_duty(current_duty); //update the last duty that was set by the user to the driver
+    }
   }else{
     ESP_LOGI(TAG, "Fan has been disabled");
-    update_duty(0); // push duty directly to avoid overwriting user set duty
+    update_fan_duty(0); // push duty directly to avoid overwriting user set duty
   }
 }
 
@@ -98,4 +119,19 @@ void fan_on(){
 void fan_off(){
   ESP_ERROR_CHECK(ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, 0, 0));
   ESP_LOGI(TAG, "Fan set to 0 duty.");
+}
+
+// if the sent in percentage is greater than the set threshold, turn the fan on, otherwise off
+void fan_send_sensor_pct(uint8_t sensor_pct){
+  if((sensor_pct >= SENSOR_THRESH) != auto_on){
+    auto_on = !auto_on;
+    if(is_auto){ // if auto is enabled for the device
+      if(auto_on){ // if the sensor threshold was reached
+        update_fan_duty(current_duty);
+      }else{
+        update_fan_duty(0);
+      } 
+    }
+  }
+  
 }
