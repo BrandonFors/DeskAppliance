@@ -8,7 +8,26 @@ This project was is a culmination of my desire to explore embedded system design
 
 ### What I Learned
 
-Building Desk Assist from the ground up taught me a lot about 
+Building Desk Assist from the ground up taught me a lot about embedded system software and electrical design.
+
+**The Software:**
+
+I learned how to configure drivers designed for an MCU and build device drivers by reading driver and component documentation. I used FreeRTOS to create an embedded system that reacted to external factors in real time using a combination of tasks, ISRs, queues to transfer data, and mutexes to protect shared resources. 
+
+While figuring out how to implement ESP-IDFs SPI drivers I also learned about board communication protocols like UART, I2C, and SPI. I learned the pros/cons of each and in which situations they are used. While discovering how to write a ESP32 WiFi driver I also gained exposure to netorking stacks in c and how different WiFi protocols like HTTP work.
+
+I also learned how to use tools like CMake and Kconfig to build modular code that is easily configurable within the build environment.
+
+In the future I will refine my device drivers to have the same customization as the WiFi driver so they can be ported to future projects with minimal change.
+
+Hardware:
+
+When wiring components onto 3 different breadboards, I learned the importance of component organization. I found that organizing components relative to their powersource, board pin, and other related components is important for ease of device use and electrical debugging.
+
+When desigining circuits, I accounted for electrical noise using a filtering capacitor at the terminals of the 9V battery, accross the DC motor terminals, and on ADC pins. I also accounted for voltage spikes from the DC motor with a flyback diode.
+
+I utilized a multimeter for most debugging when testing for expected behavior with GPIO and ADC pins. I also made sure to test the max voltage on any input pins to make sure I did not apply any voltage over 3.3V to my ESP32 chip.
+
 
 ****
 
@@ -32,7 +51,7 @@ Any measurement that uses the ADC requires a mutex to access the ADC driver as a
 
 **Actuators:**
 
-This project has 4 main outputs besides the OLED screen: a servo controlled vent, dc motor fan, lamp bulb, and an 8 bit shift register. The first 3 actuators are controlled using PWM. The lamp and dc motor utilize a logic level N-Mosfets as they require larger voltages than 3.3V and don't have a power cable like the servo. The shift register controlls 5 LEDs and is used to indicate the "level" of the potentiometer as the user is adjusting an actuator. It behaves like a progress bar where if the potentiometer is at it's lowest, no LEDs are lit and if the potentiometer is at its max, all 5 will be lit.
+This project has 4 main outputs besides the OLED screen: a servo controlled vent, DC motor fan, lamp bulb, and an 8 bit shift register. The first 3 actuators are controlled using PWM. The lamp and DC motor utilize a logic level N-Mosfets as they require larger voltages than 3.3V and don't have a power cable like the servo. The shift register controlls 5 LEDs and is used to indicate the "level" of the potentiometer as the user is adjusting an actuator. It behaves like a progress bar where if the potentiometer is at it's lowest, no LEDs are lit and if the potentiometer is at its max, all 5 will be lit.
 
 
 **Device Drivers:**
