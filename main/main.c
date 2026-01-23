@@ -68,7 +68,7 @@ void gpio_isr_handler(void* arg);
 bool signal_sample_pot(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx);
 void potentiometer_task(void *parameters);
 void start_up();
-void user_interface(void *parameters);
+void user_interface_task(void *parameters);
 void controller_task(void *parameters);
 
 //button interrupt function
@@ -233,7 +233,7 @@ void wifi_task(void *parameters){
 
 // handles all user interface display functionality and interactions
 
-void user_interface(void *parameters){
+void user_interface_task(void *parameters){
 
   MenuItem actuator_menu[ACTUATOR_MENU_LEN] = {
     {"Fan",false}, 
@@ -560,7 +560,7 @@ void app_main() {
   );
 
   xTaskCreatePinnedToCore(
-    user_interface,
+    user_interface_task,
     "User Interface",
     2048,
     NULL,
