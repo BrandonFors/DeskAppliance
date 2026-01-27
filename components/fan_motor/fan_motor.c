@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 //tuned to useable values
-#define MAX_FAN_DUTY 255
+#define MAX_FAN_DUTY 187
 #define MIN_FAN_DUTY 90
 #define TIMER_FREQ 20000
 #define SENSOR_THRESH 39
