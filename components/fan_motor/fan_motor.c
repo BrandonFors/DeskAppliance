@@ -16,9 +16,9 @@ static const char *TAG = "Fan";
 
 static uint32_t current_duty;
 
-static bool is_enabled = NULL;
-static bool is_auto = NULL;
-static bool auto_on = NULL;
+static bool is_enabled = false;
+static bool is_auto = false;
+static bool auto_on = false;
 
 
 
