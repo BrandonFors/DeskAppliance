@@ -10,7 +10,7 @@ static const uint8_t PHOTO_PIN = 34;
 
 static const uint8_t MOTOR_PIN = 16;
 static const uint8_t LAMP_PIN = 17;
-static const uint8_t VENT_PIN = 18;
+static const uint8_t VENT_PIN = 13;
 
 static const uint8_t BUT_1_PIN = 19;
 static const uint8_t BUT_2_PIN = 21;

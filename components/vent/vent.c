@@ -9,8 +9,8 @@
 #define PWM_PERIOD_HZ 50 // pwm period in HZ
 #define PWM_PERIOD_MS 20000 //pwm period in ms
 //the following two values were tuned to my servo specifically
-#define MIN_PULSE_MS 600 // min pulse in us
-#define MAX_PULSE_MS 2700 // max pulse in us
+#define MIN_PULSE_US 550 // min pulse in us
+#define MAX_PULSE_US 2600 // max pulse in us
 #define MAX_DUTY 4096 // max duty cycle for 12 bit duty resolution
 
 #define SENSOR_THRESH 39
@@ -62,7 +62,7 @@ uint32_t angle_to_duty(uint8_t angle){
     angle = 180;
   }
   //convert the angle into the pulse value for that angle
-  uint32_t pulse = MIN_PULSE_MS + (uint32_t)angle*(MAX_PULSE_MS-MIN_PULSE_MS)/180; 
+  uint32_t pulse = MIN_PULSE_US + (uint32_t)angle*(MAX_PULSE_US-MIN_PULSE_US)/180; 
 
   //return the duty cycle for the angle
   return pulse*MAX_DUTY/PWM_PERIOD_MS;

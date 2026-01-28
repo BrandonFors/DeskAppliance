@@ -412,7 +412,7 @@ void user_interface_task(void *parameters){
         }
         break;
       case (ADJUST):
-        displayAdjust(actuator_menu[chosen_action]);
+        displayAdjust(actuator_menu[chosen_actuator]);
         //send data to controller and the controller will start sampling
         xQueueSendToBack(controllerQueue, &instruction, portMAX_DELAY);
         while(pressed != BUTTON_1 && pressed != BUTTON_2){ 
