@@ -5,7 +5,11 @@
 This project was is a culmination of my desire to explore embedded system design and electrical components that I found in my house over winter break. The device, equiped with a fan, vent system, and lamp bulb was built with automated comfort in mind. Utilizing a temperature sensor and photoresistor, the device will turn the fan and vent on if the room is a certain temperature and will turn the lamp on if the room is dark. The device also is built with an OLED user interface where a user can customize fan speed, vent angle, and lamp brightness. The user can also toggle auto functionality for a given sensor on or off for a more customizable experience.
 
 ****
+### Motivation
 
+When I was younger I’d spend a lot of time at my PC and after a while, especially in AZ, it got pretty warm in my room. It also would get dark in my room in the evening and I would forget to turn on the lights to avoid straining my eyes looking at a monitor in the dark. I landed on creating a device with a configurable fan/vent system that could automatically turn on with the temperature and lamp that could automatically turn on when the room is dark enough. I also decided to add a UI to display useful time and temperature information as well as to enable the user to customize device behavior as needed.
+
+****
 ### What I Learned
 
 Building Desk Assist from the ground up taught me a lot about embedded system software and electrical design.
