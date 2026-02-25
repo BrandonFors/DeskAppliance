@@ -8,7 +8,7 @@ static const uint8_t POT_PIN = 32;
 static const uint8_t TEMP_PIN = 33;
 static const uint8_t PHOTO_PIN = 34;
 
-static const uint8_t MOTOR_PIN = 16;
+static const uint8_t FAN_PIN = 16;
 static const uint8_t LAMP_PIN = 17;
 static const uint8_t VENT_PIN = 13;
 

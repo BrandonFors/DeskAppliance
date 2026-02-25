@@ -37,7 +37,7 @@ void fan_init(){
 
   //create a configuration for the channel of the ledc
   channel_config = (ledc_channel_config_t){
-    .gpio_num = MOTOR_PIN, 
+    .gpio_num = FAN_PIN, 
     .speed_mode = LEDC_LOW_SPEED_MODE,
     .channel = LEDC_CHANNEL_2,
     .timer_sel = LEDC_TIMER_2,

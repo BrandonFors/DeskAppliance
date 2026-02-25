@@ -15,5 +15,6 @@
     "--background-index",
     "--query-driver=**",
     "--compile-commands-dir=c:\\Users\\bfcla\\Programming Projects\\Embedded Systems\\espidf\\DeskAppliance\\build"
-  ]
+  ],
+  "idf.currentSetup": "C:\\Users\\bfcla\\esp\\v5.5.2\\esp-idf"
 }
